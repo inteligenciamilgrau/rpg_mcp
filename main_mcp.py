@@ -333,7 +333,7 @@ def pensamento(texto: str) -> str:
 async def serve_game():
     """Serve the RPG game HTML"""
     try:
-        with open("rpg_gemini.html", "r", encoding="utf-8") as f:
+        with open("index.html", "r", encoding="utf-8") as f:
             return f.read()
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Game file not found")
