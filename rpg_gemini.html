@@ -1,0 +1,1612 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aventura na Cidade 2D</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        /* Estilos gerais da página */
+        body {
+            background-color: #1a1a1a;
+            color: #f0f0f0;
+            font-family: 'Press Start 2P', cursive;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+            flex-direction: column;
+        }
+
+        /* Container principal do jogo */
+        #game-container {
+            position: relative; /* Necessário para o posicionamento dos modais */
+            border: 4px solid #f0f0f0;
+            padding: 20px;
+            background-color: #2c2c2c;
+            border-radius: 15px;
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.2);
+            display: flex;
+            gap: 20px;
+        }
+
+        #main-game-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: #ffc107;
+            text-shadow: 2px 2px #000;
+            font-size: 1.5em;
+            margin-top: 0;
+        }
+
+        /* Estilo da área do mapa (container de grid) */
+        #game-map {
+            display: grid;
+            grid-template-columns: repeat(var(--grid-cols, 20), 1fr);
+            gap: 1px; /* Espaçamento que forma a linha do grid */
+            background-color: #555; /* Cor das linhas do grid */
+            border: 2px solid #555;
+            margin-bottom: 15px;
+        }
+
+        /* Estilo para cada célula do quadriculado */
+        .grid-cell {
+            width: 28px;
+            height: 28px;
+            background-color: #4a7c59; /* Cor de gramado */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+        }
+
+        /* --- UI de Status --- */
+        #character-stats-ui {
+            width: 220px;
+            padding: 15px;
+            border-left: 4px solid #f0f0f0;
+            text-align: left;
+            font-size: 0.8em;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        #character-stats-ui h2 {
+            margin-top: 0;
+            font-size: 1em;
+            color: #ffc107;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .character-stat-block {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px dashed #555;
+        }
+        .character-stat-block:last-child {
+            border-bottom: none;
+        }
+        .character-stat-block h3 {
+            font-size: 0.9em;
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        .stat-item {
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+        .stat-item span {
+            float: right;
+            color: #84ff84;
+        }
+
+        /* Botões */
+        .game-button {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.8em;
+            padding: 10px 15px;
+            background-color: #ffc107;
+            color: #1a1a1a;
+            border: 2px solid #000;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 15px;
+            transition: background-color 0.2s, opacity 0.2s;
+        }
+        .game-button:hover {
+            background-color: #ffd54f;
+        }
+        .game-button:disabled {
+            background-color: #666;
+            color: #999;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        /* Controle de velocidade digital */
+        #speed-control {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            font-size: 0.7em;
+        }
+        .speed-btn {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1.2em;
+            width: 35px;
+            height: 35px;
+            background-color: #555;
+            color: #fff;
+            border: 2px solid #000;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .speed-btn:hover {
+            background-color: #777;
+        }
+        
+        #destination-controls {
+            margin: 10px 0;
+            text-align: center;
+        }
+        
+        .destination-btn {
+            background-color: #2a5d31;
+            color: #f0f0f0;
+            border: 1px solid #4a7c59;
+            padding: 8px 12px;
+            margin: 2px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 0.6em;
+            transition: background-color 0.2s;
+        }
+        
+        .destination-btn:hover {
+            background-color: #3a6d41;
+        }
+        
+        .destination-btn:active {
+            background-color: #1a4d21;
+        }
+        #speed-display {
+            min-width: 60px;
+        }
+
+        /* Estilo da área de mensagens */
+        #message-box {
+            height: 40px;
+            font-size: 0.8em;
+            color: #84ff84;
+            background-color: #111;
+            padding: 10px;
+            border-radius: 5px;
+            border: 2px solid #555;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+
+        /* Estilo para as instruções */
+        .instructions {
+            margin-top: 15px;
+            font-size: 0.7em;
+            color: #aaa;
+        }
+        
+        /* --- Estilos do Tooltip, Balão de Diálogo e Game Over --- */
+        #tooltip {
+            display: none;
+            position: absolute;
+            background-color: rgba(0,0,0,0.8);
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.7em;
+            z-index: 101;
+            pointer-events: none; /* Impede que o tooltip interfira com o mouse */
+        }
+
+        .modal-overlay {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 99;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        .modal-content {
+            background-color: #111;
+            border: 4px solid #f0f0f0;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+        .modal-content h2 {
+            color: #f44336;
+        }
+        #restart-btn {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.8em;
+            padding: 10px 15px;
+            background-color: #84ff84;
+            color: #111;
+            border: 2px solid #000;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        .chat-bubble {
+            display: none; /* Começa escondido */
+            position: absolute;
+            background-color: #111;
+            border: 3px solid #f0f0f0;
+            border-radius: 10px;
+            padding: 15px;
+            z-index: 100;
+            width: 280px; /* Largura do balão */
+            box-shadow: 5px 5px 0px rgba(0,0,0,0.5);
+        }
+        .chat-bubble::after { /* Cauda/ponteiro do balão para baixo (padrão) */
+            content: '';
+            position: absolute;
+            bottom: -16px; 
+            left: var(--pointer-left, 50%);
+            transform: translateX(-50%);
+            border-width: 16px 16px 0;
+            border-style: solid;
+            border-color: #f0f0f0 transparent transparent;
+        }
+        .chat-bubble::before { 
+             content: '';
+            position: absolute;
+            bottom: -11px;
+            left: var(--pointer-left, 50%);
+            transform: translateX(-50%);
+            border-width: 13px 13px 0;
+            border-style: solid;
+            border-color: #111 transparent transparent;
+            z-index: 1;
+        }
+        /* Estilo para quando o balão está abaixo do NPC */
+        .chat-bubble.below::after {
+            bottom: auto;
+            top: -16px;
+            border-width: 0 16px 16px;
+            border-color: transparent transparent #f0f0f0;
+        }
+        .chat-bubble.below::before {
+            bottom: auto;
+            top: -11px;
+            border-width: 0 13px 13px;
+            border-color: transparent transparent #111;
+        }
+
+
+        .chat-text {
+            font-size: 0.8em;
+            color: #fff;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        .close-chat-btn {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.7em;
+            padding: 8px 12px;
+            background-color: #f44336;
+            color: #fff;
+            border: 2px solid #000;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .question-input {
+            width: 100%;
+            box-sizing: border-box;
+            background: #333;
+            border: 2px solid #555;
+            color: #fff;
+            padding: 5px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.7em;
+            margin-top: 10px;
+        }
+        .chat-history {
+            max-height: 150px;
+            overflow-y: auto;
+            text-align: left;
+        }
+        .chat-history p {
+            margin: 0 0 10px 0;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="main-game-area">
+            <h1>Aventura na Cidade</h1>
+            <div id="game-map"></div>
+            <button id="add-npc-btn" class="game-button">Adicionar NPC 🤖 (F)</button>
+             <button id="read-thought-btn" class="game-button">Perguntar ao NPC ✨ (T)</button>
+            
+            <div id="destination-controls">
+                <span>Ir para:</span>
+                <button class="destination-btn" onclick="movePlayerToDestination('casa')">🏠 Casa</button>
+                <button class="destination-btn" onclick="movePlayerToDestination('trabalho')">💼 Trabalho</button>
+                <button class="destination-btn" onclick="movePlayerToDestination('mercado')">🛒 Mercado</button>
+                <button class="destination-btn" onclick="movePlayerToDestination('banco')">🏦 Banco</button>
+                <button class="destination-btn" onclick="movePlayerToDestination('loja_carros')">🚗 Loja de Carros</button>
+            </div>
+            
+            <div id="speed-control">
+                <span>Velocidade:</span>
+                <button id="speed-minus-btn" class="speed-btn">-</button>
+                <span id="speed-display">7/10</span>
+                <button id="speed-plus-btn" class="speed-btn">+</button>
+            </div>
+            <div id="message-box">
+                <span id="message">Bem-vindo! Explore o mapa.</span>
+            </div>
+            <div class="instructions">
+                <p>WASD/SETAS: Mover | E: Conversar | T: Perguntar | F: Add NPC</p>
+                <p>🏦: Banco | 🛒: Mercado | 🏠: Casa | 💼: Trabalho | 🚗: Loja de Carros</p>
+            </div>
+        </div>
+        <div id="character-stats-ui">
+            <h2>Status</h2>
+            <!-- Os status serão preenchidos dinamicamente aqui -->
+        </div>
+        
+        <!-- Tooltip -->
+        <div id="tooltip"></div>
+
+        <!-- Container para Diálogos -->
+        <div id="dialogue-container"></div>
+
+        <!-- Tela de Game Over -->
+        <div id="game-over-modal" class="modal-overlay">
+            <div class="modal-content">
+                <h2>Fim de Jogo</h2>
+                <p>Sua stamina chegou a zero!</p>
+                <button id="restart-btn">Recomeçar</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // --- CONFIGURAÇÃO DO JOGO ---
+    const MAX_NPCS = 10;
+    const NPC_NAMES = ["Lucas", "Julia", "Matheus", "Beatriz", "Guilherme", "Larissa", "Enzo", "Mariana", "Pedro", "Sofia"];
+    let availableNpcNames = [...NPC_NAMES];
+    const SPEED_LEVELS = [3000, 2000, 1500, 1000, 800, 600, 400, 250, 100, 10];
+    const mapLayout = [
+        "####################",
+        "#P   1   W   2     #",
+        "#                  #",
+        "#    B   h   M   C #",
+        "#                  #",
+        "# 3   4       5    #",
+        "#                  #",
+        "#                  #",
+        "# 5           6    #",
+        "####################",
+    ];
+
+    // --- ELEMENTOS DO JOGO ---
+    const gameContainer = document.getElementById('game-container');
+    const gameMapElement = document.getElementById('game-map');
+    const messageElement = document.getElementById('message');
+    const addNpcBtn = document.getElementById('add-npc-btn');
+    const readThoughtBtn = document.getElementById('read-thought-btn');
+    const speedMinusBtn = document.getElementById('speed-minus-btn');
+    const speedPlusBtn = document.getElementById('speed-plus-btn');
+    const speedDisplay = document.getElementById('speed-display');
+    const tooltip = document.getElementById('tooltip');
+    const dialogueContainer = document.getElementById('dialogue-container');
+    const characterStatsUI = document.getElementById('character-stats-ui');
+    const gameOverModal = document.getElementById('game-over-modal');
+    const restartBtn = document.getElementById('restart-btn');
+
+    // --- DEFINIÇÃO DOS EMOJIS E NOMES ---
+    const visualElements = {
+        '#': '🧱', 'P': '🤠', 'B': '🏦', 'M': '🛒',
+        'H': '🏠', 'W': '💼', 'N': '🤖', 'C': '🚗', ' ': ' '
+    };
+    const locationNames = {
+        'B': 'Banco', 'M': 'Mercado', 'H': 'Casa', 'W': 'Trabalho', 'C': 'Loja de Carros'
+    };
+
+    // --- ESTADO DO JOGO ---
+    let playerPosition;
+    let npcs = [];
+    let mapGrid = [];
+    let locations = {};
+    let houseSlots = [];
+    let gameInterval = null;
+    let speedLevel = 7;
+    let activeDialogues = []; // Controla os diálogos ativos
+    let dynamicDestinations = {}; // Coordenadas dos destinos carregadas dinamicamente
+
+    function createInitialPlayerState() {
+        return {
+            id: 'player', name: 'Você', x: 0, y: 0, 
+            stamina: 100, moneyInPocket: 0, moneyInBank: 0, moveCounter: 0,
+            carros: 0, // Quantidade de carros que o player possui
+            homeLocation: null // Será definido no initializeMap
+        };
+    }
+
+    /**
+     * Converte o layout de texto em uma grade 2D e armazena as localizações.
+     */
+    function initializeMap() {
+        mapGrid = mapLayout.map(row => row.split(''));
+        houseSlots = [];
+        locations = {};
+        
+        const mapWidth = mapGrid[0].length;
+        gameMapElement.style.setProperty('--grid-cols', mapWidth);
+
+        for (let y = 0; y < mapGrid.length; y++) {
+            for (let x = 0; x < mapGrid[y].length; x++) {
+                const tile = mapGrid[y][x];
+                if (tile === 'P') {
+                    playerPosition.x = x;
+                    playerPosition.y = y;
+                    mapGrid[y][x] = ' ';
+                } else if (tile === 'B' || tile === 'M' || tile === 'W' || tile === 'C') {
+                    locations[tile] = { x, y };
+                } else if (tile === 'h') { // Casa do jogador
+                    playerPosition.homeLocation = { x, y };
+                    mapGrid[y][x] = 'H'; // Transforma em casa visível
+                } else if (!isNaN(parseInt(tile))) { // Lotes de casa para NPCs
+                    houseSlots.push({ x, y, isAvailable: true });
+                    mapGrid[y][x] = ' '; // Deixa o lote vazio inicialmente
+                }
+            }
+        }
+    }
+    
+    /**
+     * Renderiza o mapa, o jogador e os NPCs.
+     */
+    function drawMap() {
+        gameMapElement.innerHTML = '';
+        for (let y = 0; y < mapGrid.length; y++) {
+            for (let x = 0; x < mapGrid[y].length; x++) {
+                const cell = document.createElement('div');
+                cell.classList.add('grid-cell');
+                
+                const npcAtPos = npcs.find(n => n.x === x && n.y === y);
+
+                if (playerPosition.x === x && playerPosition.y === y) {
+                    cell.textContent = visualElements['P'];
+                } else if (npcAtPos) {
+                    cell.textContent = visualElements['N'];
+                } else {
+                    const tile = mapGrid[y][x];
+                    cell.textContent = visualElements[tile] || ' ';
+                }
+                // Se a célula for uma parede, remove o fundo verde
+                if (mapGrid[y][x] === '#') {
+                    cell.style.backgroundColor = '#1e1e1e';
+                }
+
+                gameMapElement.appendChild(cell);
+            }
+        }
+    }
+    
+    /**
+     * Atualiza a UI com os status de todos os personagens.
+     */
+    function updateStatsUI() {
+        characterStatsUI.innerHTML = '<h2>Status</h2>';
+        
+        const allCharacters = [playerPosition, ...npcs];
+
+        allCharacters.forEach(char => {
+            const emoji = char.id === 'player' ? '🤠' : '🤖';
+            const statBlock = document.createElement('div');
+            statBlock.className = 'character-stat-block';
+            statBlock.innerHTML = `
+                <h3>${emoji} ${char.name}</h3>
+                <div class="stat-item">Stamina: <span>${char.stamina}</span></div>
+                <div class="stat-item">Bolso: <span>R$${char.moneyInPocket}</span></div>
+                <div class="stat-item">Banco: <span>R$${char.moneyInBank}</span></div>
+                <div class="stat-item">Carros: <span>${char.carros || 0} 🚗</span></div>
+            `;
+            characterStatsUI.appendChild(statBlock);
+        });
+    }
+
+    /**
+     * Lida com as ações que ocorrem quando um personagem chega a um local.
+     */
+    function handleLocationAction(character, locationTile) {
+        let message = '';
+        let dialogue = null;
+        switch(locationTile) {
+            case 'W':
+                if (character.stamina >= 10) {
+                    character.stamina = Math.max(0, character.stamina - 10);
+                    character.moneyInBank += 10;
+                    if (character.id !== 'player') {
+                        dialogue = [
+                            { text: `${character.name}: Vim trabalhar.` },
+                            { text: `Trabalho: Mandei R$10 para o banco.` }
+                        ];
+                    } else {
+                        message = `${character.name} trabalhou e ganhou R$10.`;
+                    }
+                } else {
+                    message = `${character.name} está sem stamina para trabalhar.`;
+                }
+                break;
+            case 'B':
+                if (character.moneyInBank > 0) {
+                    const amount = character.moneyInBank;
+                    if (character.id !== 'player') {
+                        dialogue = [
+                            { text: `${character.name}: Vim retirar meu dinheiro.` },
+                            { text: `Banco: Aqui estão seus R$${amount}.` }
+                        ];
+                    } else {
+                         message = `${character.name} sacou R$${amount} do banco.`;
+                    }
+                    character.moneyInPocket += amount;
+                    character.moneyInBank = 0;
+                }
+                break;
+            case 'M':
+                if (character.moneyInPocket >= 10) {
+                    character.moneyInPocket -= 10;
+                    recuperacao = 25
+                    character.stamina = Math.min(100, character.stamina + recuperacao);
+                    if (character.id !== 'player') {
+                        dialogue = [
+                            { text: `${character.name}: Quero uma maçã.` },
+                            { text: `Mercado: Aqui está sua maçã.` }
+                        ];
+                    } else {
+                        message = `${character.name} gastou R$10 e recuperou ${recuperacao} de stamina!`;
+                    }
+                } else {
+                    message = `${character.name} não tem dinheiro para comprar.`;
+                }
+                break;
+            case 'C':
+                if (character.moneyInPocket >= 100) {
+                    character.moneyInPocket -= 100;
+                    character.carros = (character.carros || 0) + 1;
+                    if (character.id !== 'player') {
+                        dialogue = [
+                            { text: `${character.name}: Quero comprar um carro.` },
+                            { text: `Loja de Carros: Aqui está seu carro novo! 🚗` }
+                        ];
+                    } else {
+                        message = `${character.name} comprou um carro por R$100! Agora tem ${character.carros} carro(s) 🚗`;
+                    }
+                } else {
+                    if (character.id !== 'player') {
+                        dialogue = [
+                            { text: `${character.name}: Quero comprar um carro.` },
+                            { text: `Loja de Carros: Você precisa de R$100 para comprar um carro.` }
+                        ];
+                    } else {
+                        message = `${character.name} não tem dinheiro suficiente. Precisa de R$100 para comprar um carro.`;
+                    }
+                }
+                break;
+            case 'H':
+                if (character.homeLocation && character.x === character.homeLocation.x && character.y === character.homeLocation.y) {
+                    character.stamina += 2;
+                    if (character.id !== 'player') {
+                        dialogue = [
+                            { text: `${character.name}: Vim descansar.` },
+                            { text: `Casa: 100% renovado!` }
+                        ];
+                    } else {
+                        message = `${character.name} descansou em casa e recuperou toda a stamina.`;
+                    }
+                }
+                break;
+        }
+        if (character.id === 'player' && message) {
+            messageElement.textContent = message;
+        }
+        if (dialogue) {
+            startDialogue(dialogue, character, true);
+        }
+        checkGameOver();
+    }
+    
+    function handleMovementStamina(character) {
+        character.moveCounter++;
+        if (character.moveCounter >= 10) {
+            character.stamina = Math.max(0, character.stamina - 10);
+            character.moveCounter = 0;
+            checkGameOver();
+        }
+    }
+
+    function movePlayer(dx, dy) {
+        if (gameOverModal.style.display === 'flex') return;
+        const newPos = { x: playerPosition.x + dx, y: playerPosition.y + dy };
+        const targetTile = mapGrid[newPos.y]?.[newPos.x];
+        const isOccupied = npcs.some(n => n.x === newPos.x && n.y === newPos.y);
+
+        if (targetTile && targetTile !== '#' && !isOccupied) {
+            playerPosition.x = newPos.x;
+            playerPosition.y = newPos.y;
+            handleMovementStamina(playerPosition);
+            drawMap();
+            handleLocationAction(playerPosition, mapGrid[newPos.y][newPos.x]);
+        }
+    }
+
+    // Função para carregar coordenadas dos destinos do backend
+    async function loadDestinations() {
+        try {
+            const response = await fetch('/api/destinations');
+            if (response.ok) {
+                const data = await response.json();
+                dynamicDestinations = data.destinations;
+                console.log('Coordenadas dos destinos carregadas:', dynamicDestinations);
+            } else {
+                console.warn('Não foi possível carregar coordenadas do backend, usando coordenadas padrão');
+                // Fallback para coordenadas padrão se o backend não estiver disponível
+                dynamicDestinations = {
+                    "casa": {"x": 9, "y": 3},
+                    "trabalho": {"x": 9, "y": 1},
+                    "comercio": {"x": 13, "y": 3},
+                    "banco": {"x": 5, "y": 3},
+                    "centro": {"x": 10, "y": 5},
+                    "loja_carros": {"x": 17, "y": 3}
+                };
+            }
+        } catch (error) {
+            console.error('Erro ao carregar destinos:', error);
+            // Fallback para coordenadas padrão
+            dynamicDestinations = {
+                "casa": {"x": 9, "y": 3},
+                "trabalho": {"x": 9, "y": 1},
+                "comercio": {"x": 13, "y": 3},
+                "banco": {"x": 5, "y": 3},
+                "centro": {"x": 10, "y": 5},
+                "loja_carros": {"x": 17, "y": 3}
+            };
+        }
+    }
+
+    // Função para mover o player para um destino específico
+    async function movePlayerToDestination(destination) {
+        try {
+            // Verifica se as coordenadas foram carregadas
+            if (Object.keys(dynamicDestinations).length === 0) {
+                await loadDestinations();
+            }
+            
+            const targetPosition = dynamicDestinations[destination.toLowerCase()];
+            
+            if (!targetPosition) {
+                messageElement.textContent = `Destino '${destination}' não encontrado`;
+                return;
+            }
+            
+            // Usa findPath para calcular o caminho
+            const path = findPath(
+                { x: playerPosition.x, y: playerPosition.y }, 
+                targetPosition, 
+                'player'
+            );
+            
+            if (path.length === 0) {
+                messageElement.textContent = `Não foi possível encontrar um caminho para ${destination}`;
+                return;
+            }
+            
+            // Define o caminho do player
+            playerPosition.path = path;
+            playerPosition.targetDestination = destination;
+            
+            // Mostra mensagem de início da jornada
+            messageElement.textContent = `Seguindo para ${destination}...`;
+            
+        } catch (error) {
+            console.error('Erro ao mover player:', error);
+            messageElement.textContent = `Erro: ${error.message}`;
+        }
+    }
+
+    // Função para executar movimento via API MCP
+    async function executeMCPMovement(destination) {
+        try {
+            const response = await fetch('/api/player/move', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ destination: destination })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Erro na API: ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            // Se a API retornou sucesso, executa o movimento visual
+            if (result.success) {
+                await movePlayerToDestination(destination);
+                return result;
+            } else {
+                messageElement.textContent = result.message || 'Erro no movimento';
+                return result;
+            }
+        } catch (error) {
+            console.error('Erro na chamada MCP:', error);
+            messageElement.textContent = `Erro: ${error.message}`;
+            return { success: false, message: error.message };
+        }
+    }
+    
+    // Função para mover o player ao longo do caminho calculado
+    function movePlayerAlongPath() {
+        if (playerPosition.path && playerPosition.path.length > 0) {
+            const nextStep = playerPosition.path[0];
+            
+            // Verifica se o próximo passo está bloqueado por NPCs
+            const isBlocked = npcs.some(npc => npc.x === nextStep.x && npc.y === nextStep.y);
+            
+            if (!isBlocked) {
+                playerPosition.path.shift();
+                playerPosition.x = nextStep.x;
+                playerPosition.y = nextStep.y;
+                
+                handleMovementStamina(playerPosition);
+                drawMap();
+                handleLocationAction(playerPosition, mapGrid[nextStep.y][nextStep.x]);
+                
+                // Se chegou ao destino
+                if (playerPosition.path.length === 0) {
+                    messageElement.textContent = `Chegou ao destino: ${playerPosition.targetDestination || 'local'}!`;
+                    delete playerPosition.path;
+                    delete playerPosition.targetDestination;
+                }
+            }
+            // Se estiver bloqueado, tenta novamente no próximo ciclo
+        }
+    }
+
+    // --- LÓGICA DOS NPCs ---
+    function addNpc() {
+        if (npcs.length >= MAX_NPCS) return;
+        
+        const availableSlot = houseSlots.find(slot => slot.isAvailable);
+        if (!availableSlot) {
+            messageElement.textContent = "Não há mais lotes para construir casas!";
+            return;
+        }
+
+        let emptySpot = null;
+        let attempts = 0;
+        while (!emptySpot && attempts < 100) {
+            const x = Math.floor(Math.random() * mapGrid[0].length);
+            const y = Math.floor(Math.random() * mapGrid.length);
+            const isPlayerPos = playerPosition.x === x && playerPosition.y === y;
+            const isNpcPos = npcs.some(n => n.x === x && n.y === y);
+            if (mapGrid[y][x] === ' ' && !isPlayerPos && !isNpcPos) {
+                emptySpot = { x, y };
+            }
+            attempts++;
+        }
+        
+        if (emptySpot) {
+            availableSlot.isAvailable = false;
+            mapGrid[availableSlot.y][availableSlot.x] = 'H'; // Constrói a casa no mapa
+
+            const nameIndex = Math.floor(Math.random() * availableNpcNames.length);
+            const npcName = availableNpcNames.splice(nameIndex, 1)[0] || `Robô #${npcs.length + 1}`;
+            npcs.push({
+                id: Date.now(), name: npcName, x: emptySpot.x, y: emptySpot.y, path: [],
+                plan: ['H', 'W', 'B', 'M', 'C'], planIndex: 0, blockedTurns: 0,
+                stamina: 100, moneyInPocket: 0, moneyInBank: 0, moveCounter: 0,
+                carros: 0, // Quantidade de carros que o NPC possui
+                homeLocation: { x: availableSlot.x, y: availableSlot.y },
+                chatHistory: [] // Adiciona histórico de chat para o NPC
+            });
+            if (npcs.length >= MAX_NPCS) addNpcBtn.disabled = true;
+            drawMap();
+            updateStatsUI();
+        }
+    }
+
+    function updateNpcs() {
+        if (gameOverModal.style.display === 'flex') return;
+        
+        // Move o player ao longo do caminho se ele tiver um
+        movePlayerAlongPath();
+        
+        const allCharacters = [playerPosition, ...npcs];
+
+        for (const npc of npcs) {
+            // Se o NPC estiver no meio de um diálogo, ele não se move
+            if (activeDialogues.some(d => d.character === npc)) continue;
+            
+            if (npc.stamina <= 0) continue; 
+
+            if (npc.path.length > 0) {
+                const nextStep = npc.path[0];
+                const isBlocked = allCharacters.some(p => p.id !== npc.id && p.x === nextStep.x && p.y === nextStep.y);
+                if (!isBlocked) {
+                    npc.path.shift();
+                    npc.x = nextStep.x;
+                    npc.y = nextStep.y;
+                    npc.blockedTurns = 0;
+                    handleMovementStamina(npc);
+                } else {
+                    npc.blockedTurns++;
+                    if (npc.blockedTurns > 2) {
+                        const destinationKey = npc.plan[npc.planIndex];
+                        const destination = destinationKey === 'H' ? npc.homeLocation : locations[destinationKey];
+                        npc.path = findPath({x: npc.x, y: npc.y}, destination, npc.id);
+                        npc.blockedTurns = 0;
+                    }
+                }
+            } else {
+                const destinationKey = npc.plan[npc.planIndex];
+                const destination = destinationKey === 'H' ? npc.homeLocation : locations[destinationKey];
+
+                if (npc.x === destination.x && npc.y === destination.y) {
+                    handleLocationAction(npc, destinationKey);
+                    npc.planIndex = (npc.planIndex + 1) % npc.plan.length;
+                    const newDestinationKey = npc.plan[npc.planIndex];
+                    const newDestination = newDestinationKey === 'H' ? npc.homeLocation : locations[newDestinationKey];
+                    npc.path = findPath({x: npc.x, y: npc.y}, newDestination, npc.id);
+                } else {
+                    npc.path = findPath({x: npc.x, y: npc.y}, destination, npc.id);
+                }
+            }
+        }
+        drawMap();
+        updateStatsUI();
+    }
+
+    // --- LÓGICA DO CHAT ---
+    function startDialogue(sequence, character, isTimed = false, isQuestion = false, existingHistory = []) {
+        const dialogueId = Date.now();
+        const dialogue = { id: dialogueId, sequence, character, isTimed, isQuestion, index: 0, element: null, chatHistory: [...existingHistory], hasStarted: existingHistory.length > 0 };
+        const bubble = createChatBubble(dialogue);
+        dialogue.element = bubble;
+        
+        activeDialogues.push(dialogue);
+
+        if (isTimed) {
+            runTimedDialogue(dialogue);
+        } else {
+            displayCurrentDialogue(dialogue);
+        }
+    }
+
+    async function runTimedDialogue(dialogue) {
+        const bubble = dialogue.element;
+        try {
+            for (const line of dialogue.sequence) {
+                bubble.querySelector('.chat-text').textContent = line.text;
+                positionChatBubble(dialogue);
+                bubble.style.display = 'block';
+                await new Promise(resolve => setTimeout(resolve, 3000));
+            }
+        } finally {
+            closeChat(dialogue.id);
+        }
+    }
+
+    function displayCurrentDialogue(dialogue) {
+        if (!dialogue || (dialogue.index >= dialogue.sequence.length && !dialogue.isQuestion)) {
+            closeChat(dialogue.id);
+            return;
+        }
+        
+        const bubble = dialogue.element;
+        const currentLine = dialogue.sequence[dialogue.index];
+        if (currentLine) {
+            bubble.querySelector('.chat-text').textContent = currentLine.text;
+        }
+        
+        positionChatBubble(dialogue);
+        bubble.style.display = 'block';
+
+        const closeBtn = bubble.querySelector('.close-chat-btn');
+        if (dialogue.sequence.length > 1 && !dialogue.isQuestion) {
+            closeBtn.textContent = dialogue.index === dialogue.sequence.length - 1 ? "Fechar" : "Próximo ->";
+        } else {
+            closeBtn.textContent = "Fechar (ESC)";
+        }
+    }
+
+    function createChatBubble(dialogue) {
+        const { id, isTimed, isQuestion, character } = dialogue;
+        const bubble = document.createElement('div');
+        bubble.className = 'chat-bubble';
+        
+        if (isQuestion) {
+            bubble.innerHTML = `
+                <div class="chat-history"></div>
+                <div class="chat-input-area">
+                    <input type="text" class="question-input" id="question-input-${id}" placeholder="Digite e aperte Enter...">
+                </div>
+                <button class="close-chat-btn" data-id="${id}" style="position: absolute; top: 5px; right: 5px; padding: 2px 5px; font-size: 0.6em;">X</button>
+            `;
+            
+            const historyContainer = bubble.querySelector('.chat-history');
+            if (dialogue.hasStarted) {
+                dialogue.chatHistory.forEach(message => {
+                    const messageEl = document.createElement('p');
+                    if (message.role === 'user') {
+                        messageEl.innerHTML = `<strong>Você:</strong> ${message.parts[0].text}`;
+                    } else {
+                        messageEl.innerHTML = `<strong>${character.name}:</strong> ${message.parts[0].text}`;
+                    }
+                    historyContainer.appendChild(messageEl);
+                });
+            } else {
+                historyContainer.innerHTML = `<p class="chat-text">Faça sua pergunta para ${character.name}:</p>`;
+            }
+
+            const input = bubble.querySelector(`#question-input-${id}`);
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    if (input.value.trim()) {
+                        getAIResponse(character, input.value.trim(), id);
+                        input.value = '';
+                    }
+                }
+            });
+            setTimeout(() => input.focus(), 0);
+
+        } else {
+            bubble.innerHTML = `
+                <p class="chat-text"></p>
+                <button class="close-chat-btn" data-id="${id}">Fechar</button>
+            `;
+        }
+        
+        dialogueContainer.appendChild(bubble);
+        
+        const closeBtn = bubble.querySelector('.close-chat-btn');
+        if (isTimed) {
+            if (closeBtn) closeBtn.style.display = 'none';
+        } else if (closeBtn) {
+            closeBtn.addEventListener('click', () => closeChat(id));
+        }
+        return bubble;
+    }
+
+    function positionChatBubble(dialogue) {
+        const bubble = dialogue.element;
+        const character = dialogue.character;
+
+        bubble.style.visibility = 'hidden';
+        bubble.style.display = 'block';
+        const bubbleWidth = bubble.offsetWidth;
+        const bubbleHeight = bubble.offsetHeight;
+        const mapCols = mapGrid[0].length;
+        const cellIndex = character.y * mapCols + character.x;
+        const cell = gameMapElement.children[cellIndex];
+        
+        if (cell) {
+            const cellRect = cell.getBoundingClientRect();
+            const containerRect = gameContainer.getBoundingClientRect();
+            let top = (cellRect.top - containerRect.top) - bubbleHeight - 20;
+            let idealLeft = (cellRect.left - containerRect.left) + (cellRect.width / 2) - (bubbleWidth / 2);
+            let finalLeft = Math.max(5, Math.min(idealLeft, gameContainer.offsetWidth - bubbleWidth - 5));
+
+            if (top < 0) {
+                top = (cellRect.top - containerRect.top) + cellRect.height + 10;
+                bubble.classList.add('below');
+            } else {
+                bubble.classList.remove('below');
+            }
+
+            const centerInContainer = (cellRect.left - containerRect.left) + (cellRect.width / 2);
+            const pointerLeft = centerInContainer - finalLeft;
+            bubble.style.top = `${top}px`;
+            bubble.style.left = `${finalLeft}px`;
+            bubble.style.setProperty('--pointer-left', `${pointerLeft}px`);
+        }
+        bubble.style.visibility = 'visible';
+    }
+
+
+    function closeChat(dialogueId) {
+        const dialogue = activeDialogues.find(d => d.id === dialogueId);
+        if (dialogue) {
+            if (dialogue.isQuestion) {
+                dialogue.character.chatHistory = [...dialogue.chatHistory];
+            }
+            dialogue.element.remove();
+            activeDialogues = activeDialogues.filter(d => d.id !== dialogueId);
+        }
+    }
+
+    // --- LÓGICA DE FIM DE JOGO ---
+    function checkGameOver() {
+        if (playerPosition.stamina <= 0) {
+            gameOverModal.style.display = 'flex';
+        }
+    }
+
+    function restartGame() {
+        gameOverModal.style.display = 'none';
+        
+        playerPosition = createInitialPlayerState();
+        npcs = [];
+        availableNpcNames = [...NPC_NAMES];
+        addNpcBtn.disabled = false;
+
+        initializeMap();
+        updateStatsUI();
+        drawMap();
+        restartGameLoop();
+    }
+
+    // --- ALGORITMO DE PATHFINDING (A*) ---
+    function findPath(start, end, requesterId) {
+        const grid = mapGrid.map(row => [...row]);
+        const openSet = [];
+        const closedSet = [];
+        const cameFrom = new Map();
+        
+        const permanentObstacles = Object.values(locations);
+        npcs.forEach(n => { if (n.homeLocation) permanentObstacles.push(n.homeLocation); });
+        if (playerPosition.homeLocation) permanentObstacles.push(playerPosition.homeLocation);
+        
+        permanentObstacles.forEach(obs => {
+            if ((obs.x !== start.x || obs.y !== start.y) && (obs.x !== end.x || obs.y !== end.y)) {
+                if (grid[obs.y]?.[obs.x] !== undefined) grid[obs.y][obs.x] = '#';
+            }
+        });
+
+        const tempObstacles = [playerPosition, ...npcs.filter(n => n.id !== requesterId)];
+        tempObstacles.forEach(obs => {
+            if (grid[obs.y]?.[obs.x] !== undefined) grid[obs.y][obs.x] = '#';
+        });
+
+        const gScore = new Map([[`${start.x},${start.y}`, 0]]);
+        const fScore = new Map([[`${start.x},${start.y}`, heuristic(start, end)]]);
+        openSet.push(start);
+        while (openSet.length > 0) {
+            openSet.sort((a, b) => fScore.get(`${a.x},${a.y}`) - fScore.get(`${b.x},${b.y}`));
+            const current = openSet.shift();
+            if (current.x === end.x && current.y === end.y) return reconstructPath(cameFrom, current);
+            closedSet.push(`${current.x},${current.y}`);
+            for (const neighbor of getNeighbors(current, grid)) {
+                if (closedSet.includes(`${neighbor.x},${neighbor.y}`)) continue;
+                const tentativeGScore = gScore.get(`${current.x},${current.y}`) + 1;
+                const neighborKey = `${neighbor.x},${neighbor.y}`;
+                if (!openSet.some(n => n.x === neighbor.x && n.y === neighbor.y)) {
+                    openSet.push(neighbor);
+                } else if (tentativeGScore >= (gScore.get(neighborKey) || Infinity)) continue;
+                cameFrom.set(neighborKey, current);
+                gScore.set(neighborKey, tentativeGScore);
+                fScore.set(neighborKey, tentativeGScore + heuristic(neighbor, end));
+            }
+        }
+        return [];
+    }
+
+    function reconstructPath(cameFrom, current) {
+        const totalPath = [current];
+        let currentKey = `${current.x},${current.y}`;
+        while (cameFrom.has(currentKey)) {
+            current = cameFrom.get(currentKey);
+            totalPath.unshift(current);
+            currentKey = `${current.x},${current.y}`;
+        }
+        totalPath.shift();
+        return totalPath;
+    }
+
+    function getNeighbors(node, grid) {
+        const neighbors = [];
+        const { x, y } = node;
+        const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+        for (const [dx, dy] of dirs) {
+            const newX = x + dx;
+            const newY = y + dy;
+            if (grid[newY]?.[newX] && grid[newY][newX] !== '#') {
+                neighbors.push({ x: newX, y: newY });
+            }
+        }
+        return neighbors;
+    }
+
+    function heuristic(a, b) {
+        return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+    }
+
+    // --- GEMINI API ---
+    async function getAIResponse(npc, question, dialogueId) {
+        const dialogue = activeDialogues.find(d => d.id === dialogueId);
+        if (!dialogue) return;
+
+        const bubble = dialogue.element;
+        const historyContainer = bubble.querySelector('.chat-history');
+        const input = bubble.querySelector('.question-input');
+        input.disabled = true;
+
+        if (!dialogue.hasStarted) {
+            historyContainer.innerHTML = '';
+            dialogue.hasStarted = true;
+        }
+
+        const userMessage = document.createElement('p');
+        userMessage.innerHTML = `<strong>Você:</strong> ${question}`;
+        historyContainer.appendChild(userMessage);
+
+        // Detecta comandos de movimento
+        const moveCommand = question.toLowerCase().match(/(?:move|ir|vá|vai)\s+(?:para\s+)?(?:o\s+)?(casa|trabalho|mercado|banco)/);
+        if (moveCommand) {
+            const destination = moveCommand[1];
+            const responseMessage = document.createElement('p');
+            responseMessage.innerHTML = `<strong>Sistema:</strong> Movendo para ${destination}...`;
+            historyContainer.appendChild(responseMessage);
+            
+            // Executa o movimento
+            await movePlayerToDestination(destination);
+            
+            input.disabled = false;
+            input.focus();
+            historyContainer.scrollTop = historyContainer.scrollHeight;
+            return;
+        }
+
+        dialogue.chatHistory.push({ role: "user", parts: [{ text: question }] });
+
+        const loadingMessage = document.createElement('p');
+        loadingMessage.innerHTML = `<strong>${npc.name}:</strong> ...`;
+        historyContainer.appendChild(loadingMessage);
+        historyContainer.scrollTop = historyContainer.scrollHeight;
+
+        const destination = locationNames[npc.plan[npc.planIndex]] || 'algum lugar';
+        const systemInstruction = `Você é ${npc.name}, um personagem em um jogo de simulação. Sua stamina está em ${npc.stamina}, você tem R$${npc.moneyInPocket} no bolso e R$${npc.moneyInBank} no banco, e está indo para ${destination}. Responda de forma curta e direta, como se fosse você, em primeira pessoa, mantendo o contexto da conversa.`;
+        
+        const fullHistory = [
+            { role: "user", parts: [{ text: `Instrução de Sistema: ${systemInstruction}` }] },
+            { role: "model", parts: [{ text: "Entendido." }] },
+            ...dialogue.chatHistory
+        ];
+
+        try {
+            const payload = { contents: fullHistory };
+            const apiUrl = '/api/gemini/generate';
+            
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`API Error: ${response.status} - ${errorData.detail || 'Erro desconhecido'}`);
+            }
+
+            const result = await response.json();
+            const aiResponse = result.response;
+
+            loadingMessage.innerHTML = `<strong>${npc.name}:</strong> ${aiResponse.trim()}`;
+            dialogue.chatHistory.push({ role: "model", parts: [{ text: aiResponse }] });
+
+        } catch (error) {
+            console.error("Gemini API call failed:", error);
+            loadingMessage.innerHTML = `<strong>${npc.name}:</strong> Hmm... Não sei o que dizer.`;
+        } finally {
+            historyContainer.scrollTop = historyContainer.scrollHeight;
+            input.disabled = false;
+            input.focus();
+        }
+    }
+
+
+    // --- CONTROLES E LOOP PRINCIPAL ---
+    function updateSpeedDisplay() {
+        speedDisplay.textContent = `${speedLevel}/${MAX_NPCS}`;
+    }
+    
+    function changeSpeed(amount) {
+        const newLevel = speedLevel + amount;
+        if (newLevel >= 1 && newLevel <= 10) {
+            speedLevel = newLevel;
+            updateSpeedDisplay();
+            restartGameLoop();
+        }
+    }
+
+    function restartGameLoop() {
+        clearInterval(gameInterval);
+        const speed = SPEED_LEVELS[speedLevel - 1];
+        gameInterval = setInterval(updateNpcs, speed);
+    }
+
+    addNpcBtn.addEventListener('click', addNpc);
+    
+    dialogueContainer.addEventListener('click', (event) => {
+        if (event.target.classList.contains('close-chat-btn')) {
+            const dialogue = activeDialogues.find(d => d.element.contains(event.target) && !d.isTimed);
+            if (dialogue) {
+                closeChat(dialogue.id);
+            }
+        }
+    });
+
+    speedMinusBtn.addEventListener('click', () => changeSpeed(-1));
+    speedPlusBtn.addEventListener('click', () => changeSpeed(1));
+    restartBtn.addEventListener('click', restartGame);
+
+    readThoughtBtn.addEventListener('click', () => {
+         if (activeDialogues.some(d => !d.isTimed)) return;
+        let closestNpc = null;
+        let minDistance = 4; // Distância máxima para ler pensamentos
+
+        for (const npc of npcs) {
+            const distance = Math.abs(playerPosition.x - npc.x) + Math.abs(playerPosition.y - npc.y);
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestNpc = npc;
+            }
+        }
+
+        if (closestNpc) {
+            startDialogue([], closestNpc, false, true, closestNpc.chatHistory);
+        } else {
+            messageElement.textContent = "Nenhum NPC está perto o suficiente.";
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (gameOverModal.style.display === 'flex') return;
+        
+        const isTyping = document.activeElement.tagName === 'INPUT';
+        if (isTyping) {
+            if (event.key === 'Escape') {
+                const manualDialogue = activeDialogues.find(d => !d.isTimed);
+                if(manualDialogue) {
+                    closeChat(manualDialogue.id);
+                }
+            }
+            return;
+        }
+
+        const key = event.key.toLowerCase();
+
+        if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'].includes(key)) {
+            event.preventDefault();
+            movePlayer(
+                (key === 'arrowleft' || key === 'a') ? -1 : (key === 'arrowright' || key === 'd') ? 1 : 0,
+                (key === 'arrowup' || key === 'w') ? -1 : (key === 'arrowdown' || key === 's') ? 1 : 0
+            );
+        }
+        if (key === 'e') {
+            if (activeDialogues.some(d => !d.isTimed)) return;
+            for (const npc of npcs) {
+                const distance = Math.abs(playerPosition.x - npc.x) + Math.abs(playerPosition.y - npc.y);
+                if (distance === 1) {
+                    startDialogue([{ text: `🤖 ${npc.name}: Olá! Estou a caminho do ${locationNames[npc.plan[npc.planIndex]] || 'algum lugar'}.` }], npc);
+                    break;
+                }
+            }
+        }
+         if (key === 't') {
+            readThoughtBtn.click();
+        }
+         if (key === 'f') {
+            addNpcBtn.click();
+        }
+        if (event.key === 'Escape') {
+            const manualDialogue = activeDialogues.find(d => !d.isTimed);
+            if(manualDialogue) {
+                closeChat(manualDialogue.id);
+            }
+        }
+    });
+
+    gameMapElement.addEventListener('mousemove', (event) => {
+        if (!event.target.classList.contains('grid-cell')) {
+            tooltip.style.display = 'none';
+            return;
+        }
+
+        const index = Array.from(gameMapElement.children).indexOf(event.target);
+        const mapWidth = mapGrid[0].length;
+        const x = index % mapWidth;
+        const y = Math.floor(index / mapWidth);
+
+        let tooltipText = '';
+        const npcAtPos = npcs.find(n => n.x === x && n.y === y);
+
+        if (npcAtPos) {
+            tooltipText = npcAtPos.name;
+        } else {
+            const tile = mapGrid[y][x];
+            if (locationNames[tile]) {
+                 if (tile === 'H') {
+                    if (playerPosition.homeLocation && playerPosition.homeLocation.x === x && playerPosition.homeLocation.y === y) {
+                        tooltipText = "Sua Casa";
+                    } else {
+                        const ownerNpc = npcs.find(n => n.homeLocation && n.homeLocation.x === x && n.homeLocation.y === y);
+                        tooltipText = ownerNpc ? `Casa de ${ownerNpc.name}` : "Casa";
+                    }
+                } else {
+                    tooltipText = locationNames[tile];
+                }
+            }
+        }
+
+        if (tooltipText) {
+            tooltip.textContent = tooltipText;
+            const containerRect = gameContainer.getBoundingClientRect();
+            tooltip.style.left = `${event.clientX - containerRect.left + 15}px`;
+            tooltip.style.top = `${event.clientY - containerRect.top + 15}px`;
+            tooltip.style.display = 'block';
+        } else {
+            tooltip.style.display = 'none';
+        }
+    });
+
+    gameMapElement.addEventListener('mouseout', () => {
+        tooltip.style.display = 'none';
+    });
+
+    // --- INICIALIZAÇÃO DO JOGO ---
+    async function startGame() {
+        playerPosition = createInitialPlayerState();
+        await loadDestinations(); // Carrega coordenadas dos destinos
+        initializeMap();
+        updateSpeedDisplay();
+        updateStatsUI();
+        drawMap();
+        restartGameLoop();
+        
+        // Inicia o sistema de polling para comandos MCP
+        startMCPCommandPolling();
+    }
+
+    // Sistema de polling para comandos MCP externos
+    let lastCommandCheck = Date.now();
+    let mcpCommandQueue = [];
+    
+    async function startMCPCommandPolling() {
+        setInterval(async () => {
+            try {
+                // Verifica se há comandos pendentes na fila local
+                if (mcpCommandQueue.length > 0) {
+                    const command = mcpCommandQueue.shift();
+                    if (command.type === 'move' && command.destination) {
+                        await movePlayerToDestination(command.destination);
+                        messageElement.textContent = `Comando MCP executado: movendo para ${command.destination}`;
+                    }
+                }
+                
+                // Busca comandos JavaScript do servidor
+                const response = await fetch('/api/js-commands');
+                if (response.ok) {
+                    const data = await response.json();
+                    for (const command of data.commands) {
+                        try {
+                            // Executa o script JavaScript
+                            eval(command.script);
+                        } catch (evalError) {
+                            console.error('Erro ao executar script MCP:', evalError);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Erro no polling MCP:', error);
+            }
+        }, 500); // Verifica a cada 0.5 segundos
+    }
+    
+    // Função global para receber comandos MCP externos
+    window.executeMCPCommand = function(type, data) {
+        mcpCommandQueue.push({ type, ...data });
+    };
+    
+    // Função global para movimento direto via MCP
+    window.mcpMovePlayer = async function(destination) {
+        try {
+            await movePlayerToDestination(destination);
+            messageElement.textContent = `Movimento MCP: indo para ${destination}`;
+            return { success: true, message: `Movendo para ${destination}` };
+        } catch (error) {
+            console.error('Erro no movimento MCP:', error);
+            return { success: false, message: error.message };
+        }
+    };
+    
+    // Função global para capturar e enviar status do jogador para o uvicorn
+    window.sendPlayerStatusToServer = async function() {
+        try {
+            console.log('=== ENVIANDO STATUS DO JOGADOR ===');
+            console.log('playerPosition atual:', window.playerPosition);
+            console.log('Todas as variáveis globais:', Object.keys(window));
+            
+            // Força a atualização das variáveis globais
+            let currentX = 1, currentY = 1, currentStamina = 100;
+            let currentMoney = 0, currentBankMoney = 0;
+            let currentLocation = 'casa';
+            
+            // Tenta múltiplas formas de acessar a posição do jogador
+            if (window.playerPosition) {
+                currentX = window.playerPosition.x;
+                currentY = window.playerPosition.y;
+                currentStamina = window.playerPosition.stamina || 100;
+                currentMoney = window.playerPosition.moneyInPocket || 0;
+                currentBankMoney = window.playerPosition.moneyInBank || 0;
+                console.log('Usando window.playerPosition:', window.playerPosition);
+            } else if (typeof playerPosition !== 'undefined') {
+                currentX = playerPosition.x;
+                currentY = playerPosition.y;
+                currentStamina = playerPosition.stamina || 100;
+                currentMoney = playerPosition.moneyInPocket || 0;
+                currentBankMoney = playerPosition.moneyInBank || 0;
+                console.log('Usando playerPosition global:', playerPosition);
+            } else {
+                // Tenta encontrar o jogador no canvas
+                const canvas = document.getElementById('gameCanvas');
+                if (canvas) {
+                    console.log('Tentando encontrar posição via canvas...');
+                    // Procura por variáveis no contexto do canvas
+                    for (let prop in window) {
+                        if (prop.includes('player') || prop.includes('Player')) {
+                            console.log('Propriedade encontrada:', prop, window[prop]);
+                        }
+                    }
+                }
+            }
+            
+            // Detecta localização baseada no tile
+            if (window.mapGrid && window.mapGrid[currentY] && window.mapGrid[currentY][currentX]) {
+                const tile = window.mapGrid[currentY][currentX];
+                console.log('Tile detectado:', tile, 'na posição:', currentX, currentY);
+                switch(tile) {
+                    case 'H': currentLocation = 'casa'; break;
+                    case 'B': currentLocation = 'banco'; break;
+                    case 'M': currentLocation = 'mercado'; break;
+                    case 'W': currentLocation = 'trabalho'; break;
+                    default: currentLocation = 'area_livre';
+                }
+            } else if (typeof mapGrid !== 'undefined' && mapGrid[currentY] && mapGrid[currentY][currentX]) {
+                const tile = mapGrid[currentY][currentX];
+                console.log('Tile detectado via mapGrid global:', tile);
+                switch(tile) {
+                    case 'H': currentLocation = 'casa'; break;
+                    case 'B': currentLocation = 'banco'; break;
+                    case 'M': currentLocation = 'mercado'; break;
+                    case 'W': currentLocation = 'trabalho'; break;
+                    default: currentLocation = 'area_livre';
+                }
+            }
+            
+            const statusData = {
+                stamina: currentStamina,
+                dinheiro_bolso: currentMoney,
+                dinheiro_banco: currentBankMoney,
+                coordenadas: { x: currentX, y: currentY },
+                localizacao_atual: currentLocation
+            };
+            
+            console.log('Status final capturado:', statusData);
+            
+            // Envia o status para o servidor uvicorn
+            const response = await fetch('/api/player/update-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ player_status: statusData })
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                console.log('Status enviado com sucesso:', result);
+                return { success: true, status: statusData, response: result };
+            } else {
+                console.error('Erro ao enviar status:', response.status);
+                return { success: false, error: `HTTP ${response.status}` };
+            }
+            
+        } catch (error) {
+            console.error('Erro ao enviar status do jogador:', error);
+            return { success: false, error: error.message };
+        }
+    };
+    
+    // Função global para obter status do jogador (sem enviar para servidor)
+    window.getPlayerStatus = function() {
+        console.log('=== OBTENDO STATUS DO JOGADOR ===');
+        
+        // Força a atualização das variáveis globais
+        let currentX = 1, currentY = 1, currentStamina = 100;
+        let currentMoney = 0, currentBankMoney = 0;
+        let currentLocation = 'casa';
+        
+        // Tenta múltiplas formas de acessar a posição do jogador
+        if (window.playerPosition) {
+            currentX = window.playerPosition.x;
+            currentY = window.playerPosition.y;
+            currentStamina = window.playerPosition.stamina || 100;
+            currentMoney = window.playerPosition.moneyInPocket || 0;
+            currentBankMoney = window.playerPosition.moneyInBank || 0;
+            console.log('getPlayerStatus - Usando window.playerPosition:', window.playerPosition);
+        } else if (typeof playerPosition !== 'undefined') {
+            currentX = playerPosition.x;
+            currentY = playerPosition.y;
+            currentStamina = playerPosition.stamina || 100;
+            currentMoney = playerPosition.moneyInPocket || 0;
+            currentBankMoney = playerPosition.moneyInBank || 0;
+            console.log('getPlayerStatus - Usando playerPosition global:', playerPosition);
+        }
+        
+        // Detecta localização baseada no tile
+        if (window.mapGrid && window.mapGrid[currentY] && window.mapGrid[currentY][currentX]) {
+            const tile = window.mapGrid[currentY][currentX];
+            console.log('getPlayerStatus - Tile detectado:', tile, 'na posição:', currentX, currentY);
+            switch(tile) {
+                case 'H': currentLocation = 'casa'; break;
+                case 'B': currentLocation = 'banco'; break;
+                case 'M': currentLocation = 'mercado'; break;
+                case 'W': currentLocation = 'trabalho'; break;
+                default: currentLocation = 'area_livre';
+            }
+        } else if (typeof mapGrid !== 'undefined' && mapGrid[currentY] && mapGrid[currentY][currentX]) {
+            const tile = mapGrid[currentY][currentX];
+            console.log('getPlayerStatus - Tile detectado via mapGrid global:', tile);
+            switch(tile) {
+                case 'H': currentLocation = 'casa'; break;
+                case 'B': currentLocation = 'banco'; break;
+                case 'M': currentLocation = 'mercado'; break;
+                case 'W': currentLocation = 'trabalho'; break;
+                default: currentLocation = 'area_livre';
+            }
+        }
+        
+        const statusData = {
+            stamina: currentStamina,
+            dinheiro_bolso: currentMoney,
+            dinheiro_banco: currentBankMoney,
+            coordenadas: { x: currentX, y: currentY },
+            localizacao_atual: currentLocation
+        };
+        
+        console.log('getPlayerStatus - Status final:', statusData);
+        return statusData;
+    };
+    
+    window.onload = startGame;
+
+</script>
+
+</body>
+</html>
